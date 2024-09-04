@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Read Smart Card Data using WebUSB</title>
+</head>
+<body>
+    <h1>Read Smart Card Data from GemPC Smart Card Reader</h1>
+    <button id="connectButton">Connect to Smart Card Reader</button>
+    <div id="output"></div>
+
+    <script>
+        const connectButton = document.getElementById('connectButton');
+        const output = document.getElementById('output');
+
+        connectButton.addEventListener('click', async () => {
+            try {
+                // Request device with specific vendor and product IDs for the GemPC Smart Card Reader
+                const device = await navigator.usb.requestDevice({
+                    filters: [{ vendorId: 0x08e6, productId: 0x3437 }]
+                });
+
+                // Open the device
+                await device.open();
+                await device.selectConfiguration(1);
+                await device.claimInterface(0);
+
+                output.innerHTML = 'Connected to Smart Card Reader';
+
+                // Here we send an APDU command to the smart card
+                // You need to replace this with a valid command for your smart card
+                const command = new Uint8Array([0x00, 0xA4, 0x04, 0x00, 0x0A]);
+                
+                // Send command to the smart card
+                const result = await device.transferOut(1, command);
+                output.innerHTML += '<br>Command sent to the card, awaiting response...';
+
+                // Read the response from the card
+                const response = await device.transferIn(1, 64);
+                const responseData = new Uint8Array(response.data.buffer);
+                
+                output.innerHTML += `<br>Response: ${Array.from(responseData).map(byte => byte.toString(16).padStart(2, '0')).join(' ')}`;
+
+                // Close the device after reading
+                await device.close();
+            } catch (error) {
+                output.innerHTML = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>
